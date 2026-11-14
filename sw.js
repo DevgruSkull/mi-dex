@@ -1,1 +1,26 @@
-const CACHE='mi-dex-shell-v1';const SHELL=['./','./index.html','./app.js','./manifest.webmanifest','./icon.png','./icon-512.png'];self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(SHELL)));self.skipWaiting()});self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))));self.clients.claim()});self.addEventListener('fetch',e=>{const req=e.request;if(req.method!=='GET'||new URL(req.url).origin!==location.origin)return;e.respondWith(caches.match(req).then(cached=>cached||fetch(req)))});
+// Mi Dex v1.2: actualizaciones de codigo con prioridad a la red.
+const CACHE='mi-dex-shell-v3';
+const SHELL=['./','./index.html','./app.js','./manifest.webmanifest','./icon.png','./icon-512.png'];
+self.addEventListener('install', event => {
+  event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(SHELL)));
+  self.skipWaiting();
+});
+self.addEventListener('activate', event => {
+  event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(key => key !== CACHE).map(key => caches.delete(key)))));
+  self.clients.claim();
+});
+self.addEventListener('fetch', event => {
+  const request=event.request;
+  if(request.method !== 'GET' || new URL(request.url).origin !== location.origin) return;
+  event.respondWith((async () => {
+    try {
+      const response=await fetch(request);
+      if(response.ok){const cache=await caches.open(CACHE);cache.put(request,response.clone());}
+      return response;
+    } catch(error) {
+      const cached=await caches.match(request);
+      if(cached) return cached;
+      throw error;
+    }
+  })());
+});
